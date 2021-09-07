@@ -26,11 +26,11 @@ async function getAutoCompOptions (val) {
   return axios.get(req)
 }
 async function getCurrentPosition (location) {
-  const req = `http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${location}`
+  const req = `https://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=${KEY}&q=${location}`
   return axios.get(req)
 }
 async function getCurrentWeather (val) {
-  const req = `http://dataservice.accuweather.com/currentconditions/v1/${val}?apikey=${KEY}`
+  const req = `https://dataservice.accuweather.com/currentconditions/v1/${val}?apikey=${KEY}`
   return axios.get(req)
 }
 function manageAutoCompOptions (options) {
