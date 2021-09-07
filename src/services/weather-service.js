@@ -1,7 +1,5 @@
 import axios from 'axios'
-// const KEY = 'jWUw008xsKJCrgLNMipmSkprGmEazaIS'
-// const KEY = 'gwmef8ApO2ujAcSGELpJBayAXwYQPX5I'
-const KEY = '8wq4uyHKbMZTvfCwSnjsyl3gijm4RHl2'
+const KEY = 'jWUw008xsKJCrgLNMipmSkprGmEazaIS'
 
 async function getFavoritesData (favorites) {
   let arr = []

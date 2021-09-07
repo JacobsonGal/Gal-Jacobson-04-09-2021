@@ -118,7 +118,12 @@ class WeatherPage extends Component {
     const selected = this.state.options.find(el => el.label === val)
     const data = await weatherService.getFiveDaysForecast(selected.id)
     const forecast = weatherService.manageDaysForecasts(data)
-    this.setState({ selectedCity: selected, value: val, daysData: forecast })
+    this.setState({
+      selectedCity: selected,
+      value: val,
+      daysData: forecast,
+      checked: false
+    })
   }
   render () {
     const { daysData } = this.state
