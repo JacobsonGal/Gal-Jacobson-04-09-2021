@@ -1,7 +1,5 @@
-import React, { Component } from 'react'
-import { toJS } from 'mobx'
-import { observer, inject } from 'mobx-react'
-import { toast } from 'react-toastify'
+import React, { useState, useEffect } from 'react'
+import { toast, ToastContainer } from 'react-toastify'
 import ReactAutocomplete from 'react-autocomplete'
 import weatherService from '../services/weather-service'
 import { Card, IconButton } from '@material-ui/core'
@@ -10,88 +8,78 @@ import FavoriteBorderIcon from '@material-ui/icons/FavoriteBorder'
 import WeatherCard from '../Components/Card'
 import Loading from '../Components/Loading'
 import './Page.scss'
+import { useSelector, useDispatch, connect } from 'react-redux'
+import { addToFavorites, setFavorites } from '../Redux/actions/favoritesActions'
 
-class WeatherPage extends Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      value: '',
-      options: [],
-      selectedCity: null,
-      daysData: [],
-      favorites: [],
-      checked: true,
-      current: null,
-      position: null,
-      isLoading: true
-    }
-  }
+function WeatherPage ({ degree, setBright }) {
+  const dispatch = useDispatch()
+  const favorites = useSelector(state => state.allFavorites.favorites)
+  const [value, setValue] = useState('')
+  const [checked, setChecked] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [options, setOptions] = useState([])
+  const [daysData, setDaysData] = useState([])
+  const [selectedCity, setSelectedCity] = useState(null)
+  const [current, setCurrent] = useState(null)
+  const [position, setPosition] = useState(null)
 
-  async componentDidMount () {
-    try {
-      const { getFavorites } = this.props.store
-      const favoritesList = toJS(getFavorites)
-      navigator.geolocation.getCurrentPosition(async position => {
-        let location =
-          position.coords.latitude + ',' + position.coords.longitude
-        var pos = await weatherService.getCurrentPosition(location)
-        const curPos = await weatherService.getCurrentWeather(pos.data.Key)
-        curPos && curPos.data[0].IsDayTime === true
-          ? this.props.setBright(true)
-          : this.props.setBright(false)
-        const url = window.location.href
-        const cityName = url.toString().split('/')[5]
-        const cityId = url.toString().split('/')[6]
-        const selected = cityId
-          ? { label: cityName.replaceAll('%20', '-'), id: cityId }
-          : pos
-          ? {
-              id: pos.data.Key + '',
-              label: pos.data.EnglishName
-            }
-          : { id: '215854', label: 'Tel-Aviv' }
-        let idx = favoritesList.findIndex(el => el.id === selected.id)
-        const isFavorite = idx > -1 ? true : false
-        const data = await weatherService.getFiveDaysForecast(selected.id)
-        const fiveDays = weatherService.manageDaysForecasts(data)
-        this.setState({
-          daysData: fiveDays,
-          value: 'Tel Aviv',
-          selectedCity: selected,
-          favorites: favoritesList,
-          checked: isFavorite,
-          position: pos.data,
-          current: curPos.data[0],
-          isLoading: false
+  useEffect(() => {
+    async function init () {
+      try {
+        navigator.geolocation.getCurrentPosition(async position => {
+          let location =
+            position.coords.latitude + ',' + position.coords.longitude
+          var pos = await weatherService.getCurrentPosition(location)
+          const curPos = await weatherService.getCurrentWeather(pos.data.Key)
+          curPos && curPos.data[0].IsDayTime === true
+            ? setBright(true)
+            : setBright(false)
+          const url = window.location.href
+          const cityName = url.toString().split('/')[5]
+          const cityId = url.toString().split('/')[6]
+          const selected = cityId
+            ? { label: cityName.replaceAll('%20', '-'), id: cityId }
+            : pos
+            ? {
+                id: pos.data.Key + '',
+                label: pos.data.EnglishName
+              }
+            : { id: '215854', label: 'Tel-Aviv' }
+          let idx = favorites?.findIndex(el => el.id === selected.id)
+          const isFavorite = idx > -1 ? true : false
+          const data = await weatherService.getFiveDaysForecast(selected.id)
+          const fiveDays = weatherService.manageDaysForecasts(data)
+          setDaysData(fiveDays)
+          setValue('Tel Aviv')
+          setSelectedCity(selected)
+          setChecked(isFavorite)
+          setPosition(pos.data)
+          setCurrent(curPos.data[0])
+          setIsLoading(false)
         })
-      })
-    } catch (e) {
-      console.log(e)
+      } catch (e) {
+        console.log(e)
+      }
     }
-  }
-  handleFavoriteClick = () => {
-    const { addToFavorite } = this.props.store
-    if (this.state.selectedCity) {
-      this.setState((prevState, props) => ({
-        checked: !prevState.checked
-      }))
-      addToFavorite(this.state.selectedCity)
-      const { getFavorites } = this.props.store
-      const favorites = toJS(getFavorites)
+    isLoading && init()
+  }, [favorites, isLoading, selectedCity, setBright])
+
+  function handleFavoriteClick () {
+    if (selectedCity) {
+      setChecked(!checked)
+      dispatch(addToFavorites(selectedCity))
       if (favorites) {
-        let idx = favorites?.findIndex(
-          fav => fav.id === this.state.selectedCity.id
-        )
+        let idx = favorites?.findIndex(fav => fav.id === selectedCity.id)
         if (idx > -1) {
           let arr = favorites.splice(idx, 1)
-          this.setState({ favorites: arr })
+          setFavorites(arr)
         }
       }
     }
   }
-  handleChange = async e => {
-    this.setState({ value: e.target.value })
-    if (!/^[a-z]+$/i.test(e.target.value)) {
+  async function handleChange (e) {
+    setValue(e.target.value)
+    if (!/^[a-z]*$/i.test(e.target.value)) {
       const notify = () =>
         toast.error('English Only!', {
           position: 'top-center',
@@ -108,79 +96,75 @@ class WeatherPage extends Component {
       try {
         const options = await weatherService.getAutoCompOptions(e.target.value)
         const handledOptions = weatherService.manageAutoCompOptions(options)
-        this.setState({ options: handledOptions })
+        setOptions(handledOptions)
       } catch (e) {
         console.log('error on fetching options', e)
       }
     }
   }
-  handleSelect = async val => {
-    const selected = this.state.options.find(el => el.label === val)
+  async function handleSelect (val) {
+    const selected = options.find(el => el.label === val)
     const data = await weatherService.getFiveDaysForecast(selected.id)
     const forecast = weatherService.manageDaysForecasts(data)
-    this.setState({
-      selectedCity: selected,
-      value: val,
-      daysData: forecast,
-      checked: false
-    })
+    setSelectedCity(selected)
+    setValue(val)
+    setDaysData(forecast)
+    setChecked(false)
   }
-  render () {
-    const { daysData } = this.state
-    let name = this.state.selectedCity?.label
-    let city = this.state.daysData[0] ? this.state.daysData[0] : null
-    let text = this.state.daysData[0]?.weatherText
-    let degree = this.props.degree
-    let max = degree === 'F' ? city?.max : Math.ceil(((city?.max - 32) * 5) / 9)
-    let min = degree === 'F' ? city?.min : Math.ceil(((city?.min - 32) * 5) / 9)
 
-    if (this.state.isLoading) return <Loading />
+  let name = selectedCity?.label
+  let city = daysData[0] ? daysData[0] : null
+  let text = daysData[0]?.weatherText
+  let max = degree === 'F' ? city?.max : Math.ceil(((city?.max - 32) * 5) / 9)
+  let min = degree === 'F' ? city?.min : Math.ceil(((city?.min - 32) * 5) / 9)
 
-    return (
-      <section className='weather-page slide-in-fwd-center'>
-        <div className='input-section'>
-          <h2>Weather</h2>
-          <label>Search City </label>
-          <div className='search'>
-            <ReactAutocomplete
-              items={this.state.options}
-              shouldItemRender={(item, value) =>
-                item.label.toLowerCase().indexOf(value.toLowerCase()) > -1
-              }
-              getItemValue={item => item.label}
-              renderItem={(item, highlighted) => (
-                <div key={item.id} style={{ color: 'black' }}>
-                  {item.label}
-                </div>
-              )}
-              value={this.state.value}
-              onChange={this.handleChange}
-              onSelect={val => this.handleSelect(val)}
-            />
+  if (isLoading) return <Loading />
+
+  return (
+    <section className='weather-page slide-in-fwd-center'>
+      <div className='input-section'>
+        <h2>Weather</h2>
+        <label>Search City </label>
+        <div className='search'>
+          <ReactAutocomplete
+            items={options}
+            shouldItemRender={(item, value) =>
+              item.label.toLowerCase().indexOf(value.toLowerCase()) > -1
+            }
+            getItemValue={item => item.label}
+            renderItem={(item, highlighted) => (
+              <div key={item.id} style={{ color: 'black' }}>
+                {item.label}
+              </div>
+            )}
+            value={value}
+            onChange={handleChange}
+            onSelect={val => handleSelect(val)}
+          />
+        </div>
+      </div>
+      <div className='day-container'>
+        <Card className='card-container'>
+          <div className='day-card-up'>
+            <h2>{name}</h2>
+            <h3>
+              {max} {'°' + degree} {'-'} {min + '°' + degree}
+            </h3>
+
+            <h2>{text}</h2>
+            <IconButton
+              onClick={event => handleFavoriteClick(event)}
+              className='iconButton'
+              style={{ color: 'rgb(255,0,0)' }}
+            >
+              {checked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            </IconButton>
           </div>
-        </div>
-        <div className='day-container'>
-          <Card className='card-container'>
-            <div className='day-card-up'>
-              <h2>{name}</h2>
-              <h3>
-                {max} {'°' + degree} {'-'} {min + '°' + degree}
-              </h3>
-
-              <h2>{text}</h2>
-              <IconButton
-                onClick={event => this.handleFavoriteClick(event)}
-                className='iconButton'
-                style={{ color: 'rgb(255,0,0)' }}
-              >
-                {this.state.checked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-              </IconButton>
-            </div>
-            <WeatherCard data={daysData} degree={this.props.degree} />
-          </Card>
-        </div>
-      </section>
-    )
-  }
+          <WeatherCard data={daysData} degree={degree} />
+        </Card>
+      </div>
+      <ToastContainer limit={3} />
+    </section>
+  )
 }
-export default inject('store')(observer(WeatherPage))
+export default connect()(WeatherPage)

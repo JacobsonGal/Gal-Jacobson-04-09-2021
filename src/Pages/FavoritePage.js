@@ -1,68 +1,58 @@
-import React, { Component } from 'react'
-import { toJS } from 'mobx'
-import { observer, inject } from 'mobx-react'
+import React, { useState, useEffect } from 'react'
 import Card from '@material-ui/core/Card'
 import weatherService from '../services/weather-service'
 import WeatherCard from '../Components/Card'
 import Loading from '../Components/Loading'
 import './Page.scss'
+import { useSelector, useDispatch, connect } from 'react-redux'
+import { addToFavorites, getFavorites } from '../Redux/actions/favoritesActions'
 
-class FavoritePage extends Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      favorites: null,
-      isLoading: true
+function FavoritePage ({ degree }) {
+  const dispatch = useDispatch()
+  const [favorites, setFavorites] = useState(
+    useSelector(state => state.allFavorites.favorites)
+  )
+  const [data, setData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function init () {
+      // setFavorites(dispatch(getFavorites()))
+      // if (favorites) {
+      const favoritesData = await weatherService.getFavoritesData(favorites)
+      console.log('data', favoritesData)
+      setData(favoritesData)
+      // }
+
+      setIsLoading(false)
     }
-  }
-  async componentDidMount () {
-    const { getFavorites } = this.props.store
-    const favorites = await weatherService.getFavoritesData(toJS(getFavorites))
-    this.setState({
-      favorites: favorites,
-      isLoading: false
-    })
+    isLoading && init()
+  }, [favorites, data, isLoading, dispatch])
+
+  function handleFavoriteClick (city) {
+    dispatch(addToFavorites(city))
   }
 
-  handleFavoriteClick = city => {
-    const { addToFavorite } = this.props.store
-    addToFavorite(city)
-    const { getFavorites } = this.props.store
-    const favorites = toJS(getFavorites)
-    if (favorites) {
-      let idx = favorites?.findIndex(
-        fav => fav.id === this.state.selectedCity.id
-      )
-      if (idx > -1) {
-        let arr = favorites.splice(idx, 1)
-        this.setState({ favorites: arr })
-      }
-    }
-  }
-
-  render () {
-    if (this.state.isLoading) return <Loading />
-
-    return (
-      <section className='weather-page slide-in-fwd-center'>
-        <div className='day-container'>
-          <Card className='card-container'>
-            {this.state.favorites.length > 0 ? (
-              <WeatherCard
-                data={this.state.favorites}
-                degree={this.props.degree}
-                favPage={true}
-                handleFavoriteClick={this.handleFavoriteClick}
-              />
-            ) : (
-              <div className='emptyState'>
-                <h2>No Favorites Yet</h2>
-              </div>
-            )}
-          </Card>
-        </div>
-      </section>
-    )
-  }
+  if (isLoading) return <Loading />
+  return (
+    <section className='weather-page slide-in-fwd-center'>
+      <div className='day-container'>
+        <Card className='card-container'>
+          {data?.length > 0 ? (
+            <WeatherCard
+              data={data}
+              degree={degree}
+              favPage={true}
+              handleFavoriteClick={handleFavoriteClick}
+            />
+          ) : (
+            <div className='emptyState'>
+              <h2>No Favorites Yet</h2>
+            </div>
+          )}
+        </Card>
+      </div>
+    </section>
+  )
 }
-export default inject('store')(observer(FavoritePage))
+export default connect()(FavoritePage)

@@ -56,7 +56,7 @@ export default function WeatherCard ({
       {favPage
         ? favData?.map((city, i) => {
             return (
-              <Card className='card'>
+              <Card className='card' key={i}>
                 <NavLink to={`city/${city.label}/${city.id}`} className='link'>
                   <Card className='card' key={i} style={{ boxShadow: 'none' }}>
                     {CityCard(city)}
