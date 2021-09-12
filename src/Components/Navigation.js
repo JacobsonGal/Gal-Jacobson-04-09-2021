@@ -1,8 +1,8 @@
 import React from 'react'
 import { Navbar, Container, Nav } from 'react-bootstrap'
-import Button from '@material-ui/core/Button'
 import { Home, Favorite, NightsStay, WbSunny } from '@material-ui/icons'
 import { NavLink } from 'react-router-dom'
+import Button from '@material-ui/core/Button'
 
 export default function Navigation (props) {
   return (
