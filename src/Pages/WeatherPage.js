@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { toast, ToastContainer } from 'react-toastify'
+import { useSelector, useDispatch, connect } from 'react-redux'
+import { addToFavorites, setFavorites } from '../Redux/actions/favoritesActions'
+import { Card, IconButton } from '@material-ui/core'
 import ReactAutocomplete from 'react-autocomplete'
 import weatherService from '../services/weather-service'
-import { Card, IconButton } from '@material-ui/core'
 import FavoriteIcon from '@material-ui/icons/Favorite'
 import FavoriteBorderIcon from '@material-ui/icons/FavoriteBorder'
 import WeatherCard from '../Components/Card'
 import Loading from '../Components/Loading'
 import './Page.scss'
-import { useSelector, useDispatch, connect } from 'react-redux'
-import { addToFavorites, setFavorites } from '../Redux/actions/favoritesActions'
 
 function WeatherPage ({ degree, setBright }) {
   const dispatch = useDispatch()

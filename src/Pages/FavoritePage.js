@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useSelector, useDispatch, connect } from 'react-redux'
+import { addToFavorites } from '../Redux/actions/favoritesActions'
 import Card from '@material-ui/core/Card'
 import weatherService from '../services/weather-service'
 import WeatherCard from '../Components/Card'
 import Loading from '../Components/Loading'
 import './Page.scss'
-import { useSelector, useDispatch, connect } from 'react-redux'
-import { addToFavorites, getFavorites } from '../Redux/actions/favoritesActions'
 
 function FavoritePage ({ degree }) {
   const dispatch = useDispatch()
@@ -17,13 +17,8 @@ function FavoritePage ({ degree }) {
 
   useEffect(() => {
     async function init () {
-      // setFavorites(dispatch(getFavorites()))
-      // if (favorites) {
       const favoritesData = await weatherService.getFavoritesData(favorites)
-      console.log('data', favoritesData)
       setData(favoritesData)
-      // }
-
       setIsLoading(false)
     }
     isLoading && init()
